@@ -1,5 +1,6 @@
 ﻿using CongestionTaxCalculator.Service.Contracts;
 using CongestionTaxCalculator.Service.Contracts.BaseClasses;
+using CongestionTaxCalculator.Service.Contracts.BaseClasses.Vehicles;
 using CongestionTaxCalculator.Service.DataModels.DatabaseContext;
 using CongestionTaxCalculator.Service.Implementation;
 using Microsoft.EntityFrameworkCore;

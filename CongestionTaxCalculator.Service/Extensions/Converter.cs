@@ -1,8 +1,12 @@
-﻿using System;
+﻿using CongestionTaxCalculator.Service.Contracts.BaseClasses;
+using CongestionTaxCalculator.Service.Contracts.Dtos.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CongestionTaxCalculator.Service.Extensions.CustomExceptions;
+
 
 namespace CongestionTaxCalculator.Service.Extensions;
 
@@ -43,5 +47,18 @@ public static class Converter
     }
 
 
-  
+    public static bool IsTaxable(this VehiclesType vehicle)
+    {
+        var vehicleTypeStr = vehicle.ToString();
+        Exceptions.ItemNotFoundException.ThrowIfNull(vehicleTypeStr);
+        var type = Type.GetType($"CongestionTaxCalculator.Service.Contracts.BaseClasses.Vehicles.{vehicleTypeStr}");
+        Exceptions.BadRequestException.ThrowIfNull(type);
+        var implementedInterface = type!.GetInterfaces();
+        if (implementedInterface.ToList().Contains(typeof(ITaxExempt)))
+            return false;
+        else
+            return true;
+    }
+
+
 }

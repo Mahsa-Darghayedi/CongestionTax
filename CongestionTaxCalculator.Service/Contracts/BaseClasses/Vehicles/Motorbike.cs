@@ -1,6 +1,4 @@
-using CongestionTaxCalculator.Service.Contracts.BaseClasses;
-
-namespace CongestionTaxCalculator.Service;
+namespace CongestionTaxCalculator.Service.Contracts.BaseClasses.Vehicles;
 
 public class Motorbike : ITaxExempt
 {

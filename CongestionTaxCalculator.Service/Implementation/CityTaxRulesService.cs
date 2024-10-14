@@ -1,15 +1,18 @@
 ﻿using CongestionTaxCalculator.Service.Contracts;
 using CongestionTaxCalculator.Service.Contracts.BaseClasses;
 using CongestionTaxCalculator.Service.Contracts.Dtos;
+using CongestionTaxCalculator.Service.Contracts.Dtos.Enums;
 using CongestionTaxCalculator.Service.Contracts.Dtos.TaxRule;
 using CongestionTaxCalculator.Service.Contracts.Entities;
 using CongestionTaxCalculator.Service.DataModels.DatabaseContext;
 using CongestionTaxCalculator.Service.Extensions;
+using CongestionTaxCalculator.Service.Extensions.CustomExceptions;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -29,50 +32,38 @@ internal class CityTaxRulesService : ICityTaxRuleService
     }
     public async Task AddCity(string cityName)
     {
+        Exceptions.BadRequestException.ThrowIfNull(cityName);
         using var context = _dbContext;
         await _dbContext.Cities.AddAsync(new City(cityName));
         await _dbContext.SaveChangesAsync();
     }
 
-
-
     public async Task AddTaxRules(CityTaxRuleCreationDto dto)
     {
 
         var city = await _dbContext.Cities.FirstOrDefaultAsync(c => c.Name.Equals(dto.City));
-        ArgumentNullException.ThrowIfNull(city, "There is no city with the given name");
+        Exceptions.ItemNotFoundException.ThrowIfNull(city);
         List<TaxRule> rules = [];
         dto.TaxRules.ForEach(c =>
         {
-            TaxRule rule = new(city.Id, c.StartTime, c.EndTime, c.Tax);
+            TaxRule rule = new(city!.Id, c.StartTime, c.EndTime, c.Tax);
             _dbContext.TaxRules.Add(rule);
         });
-
         await _dbContext.SaveChangesAsync();
 
     }
 
-   
-    public async Task<List<ResponseDto>> GetTax(string cityName, IVehicle vehicle, DateTime[] dates)
+    public async Task<List<ResponseDto>> GetTax(string cityName, VehiclesType vehicle, DateTime[] dates)
     {
-        if (vehicle is ITaxExempt)
-            throw new Exception("This vehicle is tx free.");
-
-
+        Exceptions.TaxFreeException.ThrowIf(!vehicle.IsTaxable());
         var city = await _dbContext.Cities.FirstOrDefaultAsync(c => c.Name.Equals(cityName));
-        ArgumentNullException.ThrowIfNull(city, "There is no city with the given name");
-
-        _cityTaxRules = await _dbContext.TaxRules.Where(c => c.CityId.Equals(city.Id)).ToListAsync();
-
-        //   return ([], "This vehicle is tax free.");
+        Exceptions.ItemNotFoundException.ThrowIfNull(city);
+        _cityTaxRules = await _dbContext.TaxRules.Where(c => c.CityId.Equals(city!.Id)).ToListAsync();
         List<ResponseDto> result = [];
-
         dates.Where(c => c.Date.IsTollFreeDate()).ToList().ForEach(d =>
                result.Add(new ResponseDto(d.Date.ToString(), 0))
         );
-
         var notHolidays = dates.Where(c => !c.Date.IsTollFreeDate()).ToList();
-
         var allDates = notHolidays.GroupBy(c => c.Date).Select(g => (g.Key, g.Select(c => c.TimeOfDay).ToArray())).ToList();
         allDates.ForEach(date =>
         {
@@ -140,5 +131,7 @@ internal class CityTaxRulesService : ICityTaxRuleService
     //        _ => 0
     //    };
     //}
+
+
 
 }
